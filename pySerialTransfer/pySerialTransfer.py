@@ -115,9 +115,9 @@ class SerialTransfer(object):
                 break
 
         if self.port_name is None:
-            raise InvalidSerialPort('Invalid serial port specified. \
+            raise InvalidSerialPort('Invalid serial port specified.\
                 Valid options are {ports},  but {port} was provided'.format(
-                **{'ports': serial_ports(), 'port': port}))
+                    **{'ports': serial_ports(), 'port': port}))
 
         self.crc = CRC()
         self.connection = serial.Serial()
