@@ -297,7 +297,8 @@ class SerialTransfer(object):
         if self.open():
             if self.connection.in_waiting:
                 while self.connection.in_waiting:
-                    recChar = int.from_bytes(self.connection.read(),
+                    received_byte = self.connection.read()
+                    recChar = int.from_bytes(received_byte,
                                              byteorder='big')
 
                     if self.state == find_start_byte:
@@ -321,7 +322,7 @@ class SerialTransfer(object):
 
                     elif self.state == find_payload:
                         if self.payIndex < self.bytesToRec:
-                            self.rxBuff[self.payIndex] = recChar
+                            self.rxBuff[self.payIndex] = received_byte
                             self.payIndex += 1
 
                             if self.payIndex == self.bytesToRec:
