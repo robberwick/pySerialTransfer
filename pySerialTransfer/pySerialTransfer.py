@@ -15,61 +15,67 @@ class InvalidCallbackList(Exception):
     pass
 
 
-CONTINUE        = 3
-NEW_DATA        = 2
-NO_DATA         = 1
-CRC_ERROR       = 0
-PAYLOAD_ERROR   = -1
+CONTINUE = 3
+NEW_DATA = 2
+NO_DATA = 1
+CRC_ERROR = 0
+PAYLOAD_ERROR = -1
 STOP_BYTE_ERROR = -2
 
 START_BYTE = 0x7E
-STOP_BYTE  = 0x81
+STOP_BYTE = 0x81
 
 MAX_PACKET_SIZE = 0xFE
 
-BYTE_FORMATS = {'native':          '@',
-                'native_standard': '=',
-                'little-endian':   '<',
-                'big-endian':      '>',
-                'network':         '!'}
+BYTE_FORMATS = {
+    "native": "@",
+    "native_standard": "=",
+    "little-endian": "<",
+    "big-endian": ">",
+    "network": "!",
+}
 
-STRUCT_FORMAT_LENGTHS = {'c': 1,
-                         'b': 1,
-                         'B': 1,
-                         '?': 1,
-                         'h': 2,
-                         'H': 2,
-                         'i': 4,
-                         'I': 4,
-                         'l': 4,
-                         'L': 4,
-                         'q': 8,
-                         'Q': 8,
-                         'e': 2,
-                         'f': 4,
-                         'd': 8}
+STRUCT_FORMAT_LENGTHS = {
+    "c": 1,
+    "b": 1,
+    "B": 1,
+    "?": 1,
+    "h": 2,
+    "H": 2,
+    "i": 4,
+    "I": 4,
+    "l": 4,
+    "L": 4,
+    "q": 8,
+    "Q": 8,
+    "e": 2,
+    "f": 4,
+    "d": 8,
+}
 
-ARRAY_FORMAT_LENGTHS = {'b': 1,
-                        'B': 1,
-                        'u': 2,
-                        'h': 2,
-                        'H': 2,
-                        'i': 2,
-                        'I': 2,
-                        'l': 4,
-                        'q': 8,
-                        'Q': 8,
-                        'f': 4,
-                        'd': 8}
+ARRAY_FORMAT_LENGTHS = {
+    "b": 1,
+    "B": 1,
+    "u": 2,
+    "h": 2,
+    "H": 2,
+    "i": 2,
+    "I": 2,
+    "l": 4,
+    "q": 8,
+    "Q": 8,
+    "f": 4,
+    "d": 8,
+}
 
 
-find_start_byte    = 0
-find_id_byte       = 1
+find_start_byte = 0
+find_id_byte = 1
 find_overhead_byte = 2
-find_payload_len   = 3
-find_payload       = 4
-find_crc           = 5
-find_end_byte      = 6
+find_payload_len = 3
+find_payload = 4
+find_crc = 5
+find_end_byte = 6
 
 
 def msb(val):
@@ -81,7 +87,7 @@ def lsb(val):
 
 
 def byte_val(val, pos):
-    return int.from_bytes(((val >> (pos * 8)) & 0xFF).to_bytes(2, 'big'), 'big')
+    return int.from_bytes(((val >> (pos * 8)) & 0xFF).to_bytes(2, "big"), "big")
 
 
 def num_bytes(val):
@@ -90,7 +96,7 @@ def num_bytes(val):
 
     if num_bits % 8:
         num_bytes += 1
-    
+
     if not num_bytes:
         num_bytes = 1
 
@@ -106,13 +112,13 @@ def constrain(val, min_, max_):
 
 
 def open_ports():
-    '''
+    """
     Description:
     ------------
     Lists serial port names
 
     :return port_list: list - all serial ports currently available
-    '''
+    """
     port_list = []
 
     for port in serial_ports():
@@ -131,8 +137,17 @@ def serial_ports():
 
 
 class SerialTransfer(object):
-    def __init__(self, port, baud=115200, restrict_ports=True, debug=True, byte_format=BYTE_FORMATS['little-endian'], timeout=0.05, write_timeout=None):
-        '''
+    def __init__(
+        self,
+        port,
+        baud=115200,
+        restrict_ports=True,
+        debug=True,
+        byte_format=BYTE_FORMATS["little-endian"],
+        timeout=0.05,
+        write_timeout=None,
+    ):
+        """
         Description:
         ------------
         Initialize transfer class and connect to the specified USB device
@@ -149,21 +164,21 @@ class SerialTransfer(object):
         :param write_timeout: float - timeout (in s) to set on pySerial for maximum wait for a write operation to the serial port
                                       default None causes no write timeouts to be raised
         :return: void
-        '''
+        """
 
-        self.txBuff = [' ' for i in range(MAX_PACKET_SIZE)]
-        self.rxBuff = [' ' for i in range(MAX_PACKET_SIZE)]
+        self.txBuff = [" " for i in range(MAX_PACKET_SIZE)]
+        self.rxBuff = [" " for i in range(MAX_PACKET_SIZE)]
 
-        self.debug        = debug
-        self.idByte       = 0
-        self.bytesRead    = 0
-        self.status       = 0
+        self.debug = debug
+        self.idByte = 0
+        self.bytesRead = 0
+        self.status = 0
         self.overheadByte = 0xFF
-        self.callbacks    = []
-        self.byte_format  = byte_format
+        self.callbacks = []
+        self.byte_format = byte_format
 
         self.state = find_start_byte
-        
+
         if restrict_ports:
             self.port_name = None
             for p in serial_ports():
@@ -172,9 +187,12 @@ class SerialTransfer(object):
                     break
 
             if self.port_name is None:
-                raise InvalidSerialPort('Invalid serial port specified.\
-                    Valid options are {ports},  but {port} was provided'.format(
-                    **{'ports': serial_ports(), 'port': port}))
+                raise InvalidSerialPort(
+                    "Invalid serial port specified.\
+                    Valid options are {ports},  but {port} was provided".format(
+                        **{"ports": serial_ports(), "port": port}
+                    )
+                )
         else:
             self.port_name = port
 
@@ -186,13 +204,13 @@ class SerialTransfer(object):
         self.connection.write_timeout = write_timeout
 
     def open(self):
-        '''
+        """
         Description:
         ------------
         Open serial port and connect to device if possible
 
         :return: bool - True if successful, else False
-        '''
+        """
 
         if not self.connection.is_open:
             try:
@@ -202,9 +220,9 @@ class SerialTransfer(object):
                 print(e)
                 return False
         return True
-    
+
     def set_callbacks(self, callbacks):
-        '''
+        """
         Description:
         ------------
         Specify a list of callback functions to be automatically called by
@@ -212,31 +230,31 @@ class SerialTransfer(object):
         packet is then used to determine which callback needs to be called.
 
         :return: void
-        '''
-        
+        """
+
         if type(callbacks) == list:
             self.callbacks = callbacks
         else:
             raise InvalidCallbackList('Parameter "callbacks" is not of type "list"')
 
     def close(self):
-        '''
+        """
         Description:
         ------------
         Close serial port
 
         :return: void
-        '''
+        """
         if self.connection.is_open:
             self.connection.close()
-    
-    def tx_obj(self, val, start_pos=0, byte_format='', val_type_override=''):
-        '''
+
+    def tx_obj(self, val, start_pos=0, byte_format="", val_type_override=""):
+        """
         Description:
         -----------
         Insert an arbitrary variable's value into the TX buffer starting at the
         specified index
-        
+
         :param val:         n/a - value to be inserted into TX buffer
         :param start_pos:   int - index of TX buffer where the first byte
                                   of the value is to be stored in
@@ -244,73 +262,77 @@ class SerialTransfer(object):
                                   https://docs.python.org/3/library/struct.html#struct-format-strings
         :param val_type_override: str - manually specify format according to
                                         https://docs.python.org/3/library/struct.html#format-characters
-    
+
         :return: int - index of the last byte of the value in the TX buffer + 1,
                        None if operation failed
-        '''
-        
+        """
+
         if val_type_override:
             format_str = val_type_override
-            
+
         else:
             if type(val) == str:
                 val = val.encode()
-                format_str = '%ds' % len(val)
-                
+                format_str = "%ds" % len(val)
+
             elif type(val) == dict:
                 val = json.dumps(val).encode()
-                format_str = '%ds' % len(val)
-                
+                format_str = "%ds" % len(val)
+
             elif type(val) == float:
-                format_str = 'f'
-                
+                format_str = "f"
+
             elif type(val) == int:
-                format_str = 'i'
-                
+                format_str = "i"
+
             elif type(val) == bool:
-                format_str = '?'
-                
+                format_str = "?"
+
             elif type(val) == list:
                 for el in val:
                     start_pos = self.tx_obj(el, start_pos)
-                
+
                 return start_pos
-            
+
             else:
                 return None
-      
+
         if byte_format:
             val_bytes = struct.pack(byte_format + format_str, val)
-            
+
         else:
-            if format_str == 'c':
-                val_bytes = struct.pack(self.byte_format + format_str, bytes(str(val), "utf-8"))
+            if format_str == "c":
+                val_bytes = struct.pack(
+                    self.byte_format + format_str, bytes(str(val), "utf-8")
+                )
             else:
                 val_bytes = struct.pack(self.byte_format + format_str, val)
 
         return self.tx_struct_obj(val_bytes, start_pos)
 
     def tx_struct_obj(self, val_bytes, start_pos=0):
-        '''
+        """
         Description:
         -----------
         Insert a byte array into the TX buffer starting at the
         specified index
-        
+
         :param val_bytes:   bytearray - value to be inserted into TX buffer
         :param start_pos:   int - index of TX buffer where the first byte
                                   of the value is to be stored in
         :return: int - index of the last byte of the value in the TX buffer + 1,
                        None if operation failed
-        '''
-      
+        """
+
         for index in range(len(val_bytes)):
             self.txBuff[index + start_pos] = val_bytes[index]
-        
+
         return start_pos + len(val_bytes)
 
-    def rx_obj(self, obj_type, start_pos=0, obj_byte_size=0, list_format=None, byte_format=''):
-        '''
+    def rx_obj(
+        self, obj_type, start_pos=0, obj_byte_size=0, list_format=None, byte_format=""
+    ):
+        """
         Description:
         ------------
         Extract an arbitrary variable's value from the RX buffer starting at
@@ -318,7 +340,7 @@ class SerialTransfer(object):
         list to be extracted has homogeneous element types where the common
         element type can neither be list, dict, nor string longer than a
         single char
-        
+
         :param obj_type:      type or str - type of object to extract from the
                                             RX buffer or format string as
                                             defined by https://docs.python.org/3/library/struct.html#format-characters
@@ -330,64 +352,72 @@ class SerialTransfer(object):
                                      https://docs.python.org/3/library/array.html#module-array
         :param byte_format: str    - byte order, size and alignment according to
                                      https://docs.python.org/3/library/struct.html#struct-format-strings
-    
+
         :return unpacked_response: obj - object extracted from the RX buffer,
                                          None if operation failed
-        '''
-        
+        """
+
         if (obj_type == str) or (obj_type == dict):
-            buff = bytes(self.rxBuff[start_pos:(start_pos + obj_byte_size)])
-            format_str = '%ds' % len(buff)
-            
+            buff = bytes(self.rxBuff[start_pos : (start_pos + obj_byte_size)])
+            format_str = "%ds" % len(buff)
+
         elif obj_type == float:
-            format_str = 'f'
-            buff = bytes(self.rxBuff[start_pos:(start_pos + STRUCT_FORMAT_LENGTHS[format_str])])
-            
+            format_str = "f"
+            buff = bytes(
+                self.rxBuff[start_pos : (start_pos + STRUCT_FORMAT_LENGTHS[format_str])]
+            )
+
         elif obj_type == int:
-            format_str = 'i'
-            buff = bytes(self.rxBuff[start_pos:(start_pos + STRUCT_FORMAT_LENGTHS[format_str])])
-            
+            format_str = "i"
+            buff = bytes(
+                self.rxBuff[start_pos : (start_pos + STRUCT_FORMAT_LENGTHS[format_str])]
+            )
+
         elif obj_type == bool:
-            format_str = '?'
-            buff = bytes(self.rxBuff[start_pos:(start_pos + STRUCT_FORMAT_LENGTHS[format_str])])
-            
+            format_str = "?"
+            buff = bytes(
+                self.rxBuff[start_pos : (start_pos + STRUCT_FORMAT_LENGTHS[format_str])]
+            )
+
         elif obj_type == list:
-            buff = bytes(self.rxBuff[start_pos:(start_pos + obj_byte_size)])
-            
+            buff = bytes(self.rxBuff[start_pos : (start_pos + obj_byte_size)])
+
             if list_format:
                 arr = array(list_format, buff)
                 return arr.tolist()
-            
+
             else:
                 return None
-        
+
         elif type(obj_type) == str:
-            buff = bytes(self.rxBuff[start_pos:(start_pos + STRUCT_FORMAT_LENGTHS[obj_type])])
+            buff = bytes(
+                self.rxBuff[start_pos : (start_pos + STRUCT_FORMAT_LENGTHS[obj_type])]
+            )
             format_str = obj_type
-        
+
         else:
             return None
-        
+
         if byte_format:
             unpacked_response = struct.unpack(byte_format + format_str, buff)[0]
-            
+
         else:
             unpacked_response = struct.unpack(self.byte_format + format_str, buff)[0]
-        
+
         if (obj_type == str) or (obj_type == dict):
             # remove any trailing bytes of value 0 from data
             if 0 in unpacked_response:
-                unpacked_response = unpacked_response[:unpacked_response.index(0)]
+                unpacked_response = unpacked_response[: unpacked_response.index(0)]
 
-            unpacked_response = unpacked_response.decode('utf-8')
-        
+            unpacked_response = unpacked_response.decode("utf-8")
+
         if obj_type == dict:
             unpacked_response = json.loads(unpacked_response)
-        
+
         return unpacked_response
 
     def calc_overhead(self, pay_len):
-        '''
+        """
         Description:
         ------------
         Calculates the COBS (Consistent Overhead Stuffing) Overhead
@@ -398,7 +428,7 @@ class SerialTransfer(object):
         :param pay_len: int - number of bytes in the payload
 
         :return: void
-        '''
+        """
 
         self.overheadByte = 0xFF
 
@@ -408,7 +438,7 @@ class SerialTransfer(object):
                 break
 
     def find_last(self, pay_len):
-        '''
+        """
         Description:
         ------------
         Finds last instance of the value START_BYTE within the given
@@ -418,7 +448,7 @@ class SerialTransfer(object):
 
         :return: int - location of the last instance of the value START_BYTE
                        within the given packet array
-        '''
+        """
 
         if pay_len <= MAX_PACKET_SIZE:
             for i in range(pay_len - 1, -1, -1):
@@ -427,7 +457,7 @@ class SerialTransfer(object):
         return -1
 
     def stuff_packet(self, pay_len):
-        '''
+        """
         Description:
         ------------
         Enforces the COBS (Consistent Overhead Stuffing) ruleset across
@@ -436,7 +466,7 @@ class SerialTransfer(object):
         :param pay_len: int - number of bytes in the payload
 
         :return: void
-        '''
+        """
 
         refByte = self.find_last(pay_len)
 
@@ -447,7 +477,7 @@ class SerialTransfer(object):
                     refByte = i
 
     def send(self, message_len, packet_id=0):
-        '''
+        """
         Description:
         ------------
         Send a specified number of bytes in packetized form
@@ -456,7 +486,7 @@ class SerialTransfer(object):
                                   payload in the packet
 
         :return: bool - whether or not the operation was successful
-        '''
+        """
 
         stack = []
         message_len = constrain(message_len, 0, MAX_PACKET_SIZE)
@@ -483,7 +513,7 @@ class SerialTransfer(object):
             stack.append(STOP_BYTE)
 
             stack = bytearray(stack)
-            
+
             if self.open():
                 self.connection.write(stack)
 
@@ -491,12 +521,13 @@ class SerialTransfer(object):
 
         except:
             import traceback
+
             traceback.print_exc()
 
             return False
 
     def unpack_packet(self, pay_len):
-        '''
+        """
         Description:
         ------------
         Unpacks all COBS-stuffed bytes within the array
@@ -504,7 +535,7 @@ class SerialTransfer(object):
         :param pay_len: int - number of bytes in the payload
 
         :return: void
-        '''
+        """
 
         testIndex = self.recOverheadByte
         delta = 0
@@ -518,7 +549,7 @@ class SerialTransfer(object):
             self.rxBuff[testIndex] = START_BYTE
 
     def available(self):
-        '''
+        """
         Description:
         ------------
         Parses incoming serial data, analyzes packet contents,
@@ -526,18 +557,17 @@ class SerialTransfer(object):
 
         :return self.bytesRead: int - number of bytes read from the received
                                       packet
-        '''
+        """
 
         if self.open():
             if self.connection.in_waiting:
                 while self.connection.in_waiting:
-                    recChar = int.from_bytes(self.connection.read(),
-                                             byteorder='big')
+                    recChar = int.from_bytes(self.connection.read(), byteorder="big")
 
                     if self.state == find_start_byte:
                         if recChar == START_BYTE:
                             self.state = find_id_byte
-                    
+
                     elif self.state == find_id_byte:
                         self.idByte = recChar
                         self.state = find_overhead_byte
@@ -565,10 +595,14 @@ class SerialTransfer(object):
                             # Try to receive as many more bytes as we can, but we might not get all of them
                             # if there is a timeout from the OS
                             if self.payIndex != self.bytesToRec:
-                                moreBytes = list(self.connection.read(self.bytesToRec - self.payIndex))
+                                moreBytes = list(
+                                    self.connection.read(
+                                        self.bytesToRec - self.payIndex
+                                    )
+                                )
                                 nextIndex = self.payIndex + len(moreBytes)
 
-                                self.rxBuff[self.payIndex:nextIndex] = moreBytes
+                                self.rxBuff[self.payIndex : nextIndex] = moreBytes
                                 self.payIndex = nextIndex
 
                             if self.payIndex == self.bytesToRec:
@@ -576,7 +610,8 @@ class SerialTransfer(object):
 
                     elif self.state == find_crc:
                         found_checksum = self.crc.calculate(
-                            self.rxBuff, self.bytesToRec)
+                            self.rxBuff, self.bytesToRec
+                        )
 
                         if found_checksum == recChar:
                             self.state = find_end_byte
@@ -600,7 +635,7 @@ class SerialTransfer(object):
                         return self.bytesRead
 
                     else:
-                        print('ERROR: Undefined state: {}'.format(self.state))
+                        print("ERROR: Undefined state: {}".format(self.state))
 
                         self.bytesRead = 0
                         self.state = find_start_byte
@@ -613,9 +648,9 @@ class SerialTransfer(object):
         self.bytesRead = 0
         self.status = CONTINUE
         return self.bytesRead
-    
+
     def tick(self):
-        '''
+        """
         Description:
         ------------
         Automatically parse all incoming packets, print debug statements if
@@ -624,26 +659,28 @@ class SerialTransfer(object):
         ID)
 
         :return: void
-        '''
-        
+        """
+
         if self.available():
             if self.idByte < len(self.callbacks):
                 self.callbacks[self.idByte]()
             elif self.debug:
-                print('ERROR: No callback available for packet ID {}'.format(self.idByte))
-            
+                print(
+                    "ERROR: No callback available for packet ID {}".format(self.idByte)
+                )
+
             return True
-        
+
         elif self.debug and not self.status:
             if self.status == CRC_ERROR:
-                err_str = 'CRC_ERROR'
+                err_str = "CRC_ERROR"
             elif self.status == PAYLOAD_ERROR:
-                err_str = 'PAYLOAD_ERROR'
+                err_str = "PAYLOAD_ERROR"
             elif self.status == STOP_BYTE_ERROR:
-                err_str = 'STOP_BYTE_ERROR'
+                err_str = "STOP_BYTE_ERROR"
             else:
                 err_str = str(self.status)
-                
-            print('ERROR: {}'.format(err_str))
-        
+
+            print("ERROR: {}".format(err_str))
+
         return False
