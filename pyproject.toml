@@ -16,9 +16,16 @@ keywords = ["Arduino", "serial", "usb", "protocol", "communication"]
 Homepage = "https://github.com/PowerBroker2/pySerialTransfer"
 "Latest Release" = "https://github.com/PowerBroker2/pySerialTransfer/archive/2.6.10.tar.gz"
 
+[project.optional-dependencies]
+dev = [
+    "black",
+]
+
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
+
+
 
 [tool.hatch.build.targets.sdist]
 exclude = [
