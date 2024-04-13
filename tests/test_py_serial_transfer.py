@@ -10,8 +10,9 @@ from pySerialTransfer.pySerialTransfer import (
     State,
     BYTE_FORMATS, 
     MAX_PACKET_SIZE, 
-    START_BYTE,
 )
+
+START_BYTE = SerialTransfer.START_BYTE
 
 
 @pytest.fixture(autouse=True)

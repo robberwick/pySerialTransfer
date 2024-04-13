@@ -1,7 +1,7 @@
 import os
 import json
 import struct
-from enum import Enum
+from enum import Enum, IntEnum
 from typing import Union
 
 import serial
@@ -26,9 +26,6 @@ class Status(Enum):
     PAYLOAD_ERROR   = -1
     STOP_BYTE_ERROR = -2
 
-
-START_BYTE = 0x7E
-STOP_BYTE  = 0x81
 
 MAX_PACKET_SIZE = 0xFE
 
@@ -76,6 +73,11 @@ class State(Enum):
     FIND_PAYLOAD       = 4
     FIND_CRC           = 5
     FIND_END_BYTE      = 6
+    
+    
+class Delimiters(IntEnum):
+    START_BYTE = 0x7E
+    STOP_BYTE  = 0x81
 
 
 def constrain(val, min_, max_):
@@ -91,6 +93,8 @@ def serial_ports():
 
 
 class SerialTransfer:
+    MAX_PACKET_SIZE = 0xFE
+    
     def __init__(self, port, baud=115200, restrict_ports=True, debug=True, byte_format=BYTE_FORMATS['little-endian'], timeout=0.05, write_timeout=None):
         '''
         Description:
@@ -369,7 +373,7 @@ class SerialTransfer:
         self.overhead_byte = 0xFF
 
         for i in range(pay_len):
-            if self.tx_buff[i] == START_BYTE:
+            if self.tx_buff[i] == Delimiters.START_BYTE.value:
                 self.overhead_byte = i
                 break
 
@@ -388,7 +392,7 @@ class SerialTransfer:
 
         if pay_len <= MAX_PACKET_SIZE:
             for i in range(pay_len - 1, -1, -1):
-                if self.tx_buff[i] == START_BYTE:
+                if self.tx_buff[i] == Delimiters.START_BYTE.value:
                     return i
         return -1
 
@@ -408,7 +412,7 @@ class SerialTransfer:
 
         if (not ref_byte == -1) and (ref_byte <= MAX_PACKET_SIZE):
             for i in range(pay_len - 1, -1, -1):
-                if self.tx_buff[i] == START_BYTE:
+                if self.tx_buff[i] == Delimiters.START_BYTE.value:
                     self.tx_buff[i] = ref_byte - i
                     ref_byte = i
 
@@ -433,7 +437,7 @@ class SerialTransfer:
             self.stuff_packet(message_len)
             found_checksum = self.crc.calculate(self.tx_buff, message_len)
 
-            stack.append(START_BYTE)
+            stack.append(Delimiters.START_BYTE.value)
             stack.append(packet_id)
             stack.append(self.overhead_byte)
             stack.append(message_len)
@@ -447,7 +451,7 @@ class SerialTransfer:
                 stack.append(val)
 
             stack.append(found_checksum)
-            stack.append(STOP_BYTE)
+            stack.append(Delimiters.STOP_BYTE.value)
 
             stack = bytearray(stack)
             
@@ -476,10 +480,10 @@ class SerialTransfer:
         if test_index <= MAX_PACKET_SIZE:
             while self.rx_buff[test_index]:
                 delta = self.rx_buff[test_index]
-                self.rx_buff[test_index] = START_BYTE
+                self.rx_buff[test_index] = Delimiters.START_BYTE.value
                 test_index += delta
 
-            self.rx_buff[test_index] = START_BYTE
+            self.rx_buff[test_index] = Delimiters.START_BYTE.value
 
     def available(self):
         '''
@@ -499,7 +503,7 @@ class SerialTransfer:
                                              byteorder='big')
 
                     if self.state == State.FIND_START_BYTE:
-                        if rec_char == START_BYTE:
+                        if rec_char == Delimiters.START_BYTE:
                             self.state = State.FIND_ID_BYTE
                     
                     elif self.state == State.FIND_ID_BYTE:
@@ -553,7 +557,7 @@ class SerialTransfer:
                     elif self.state == State.FIND_END_BYTE:
                         self.state = State.FIND_START_BYTE
 
-                        if rec_char == STOP_BYTE:
+                        if rec_char == Delimiters.STOP_BYTE.value:
                             self.unpack_packet()
                             self.bytes_read = self.bytes_to_rec
                             self.status = Status.NEW_DATA
