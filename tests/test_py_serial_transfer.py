@@ -4,6 +4,7 @@ import pytest
 import serial
 
 from pySerialTransfer.pySerialTransfer import (
+    Delimiters,
     InvalidCallbackList,
     InvalidSerialPort,
     SerialTransfer,
@@ -12,7 +13,7 @@ from pySerialTransfer.pySerialTransfer import (
     MAX_PACKET_SIZE, 
 )
 
-START_BYTE = SerialTransfer.START_BYTE
+START_BYTE = Delimiters.START_BYTE.value
 
 
 @pytest.fixture(autouse=True)
