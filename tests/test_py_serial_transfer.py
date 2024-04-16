@@ -10,9 +10,9 @@ from pySerialTransfer.pySerialTransfer import (
     SerialTransfer,
     State,
     BYTE_FORMATS, 
-    MAX_PACKET_SIZE, 
 )
 
+MAX_PACKET_SIZE = SerialTransfer.MAX_PACKET_SIZE
 START_BYTE = Delimiters.START_BYTE.value
 
 
