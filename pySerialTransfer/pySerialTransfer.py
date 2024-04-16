@@ -27,8 +27,6 @@ class Status(Enum):
     STOP_BYTE_ERROR = -2
 
 
-MAX_PACKET_SIZE = 0xFE
-
 BYTE_FORMATS = {'native':          '@',
                 'native_standard': '=',
                 'little-endian':   '<',
@@ -118,8 +116,8 @@ class SerialTransfer:
         self.bytes_to_rec = 0
         self.pay_index = 0
         self.rec_overhead_byte = 0
-        self.tx_buff = [' '] * MAX_PACKET_SIZE
-        self.rx_buff = [' '] * MAX_PACKET_SIZE
+        self.tx_buff = [' '] * self.MAX_PACKET_SIZE
+        self.rx_buff = [' '] * self.MAX_PACKET_SIZE
 
         self.debug        = debug
         self.id_byte       = 0
@@ -390,7 +388,7 @@ class SerialTransfer:
                        within the given packet array
         '''
 
-        if pay_len <= MAX_PACKET_SIZE:
+        if pay_len <= self.MAX_PACKET_SIZE:
             for i in range(pay_len - 1, -1, -1):
                 if self.tx_buff[i] == Delimiters.START_BYTE.value:
                     return i
@@ -410,7 +408,7 @@ class SerialTransfer:
 
         ref_byte = self.find_last(pay_len)
 
-        if (not ref_byte == -1) and (ref_byte <= MAX_PACKET_SIZE):
+        if (not ref_byte == -1) and (ref_byte <= self.MAX_PACKET_SIZE):
             for i in range(pay_len - 1, -1, -1):
                 if self.tx_buff[i] == Delimiters.START_BYTE.value:
                     self.tx_buff[i] = ref_byte - i
@@ -430,7 +428,7 @@ class SerialTransfer:
         '''
 
         stack = []
-        message_len = constrain(message_len, 0, MAX_PACKET_SIZE)
+        message_len = constrain(message_len, 0, self.MAX_PACKET_SIZE)
 
         try:
             self.calc_overhead(message_len)
@@ -477,7 +475,7 @@ class SerialTransfer:
 
         test_index = self.rec_overhead_byte
 
-        if test_index <= MAX_PACKET_SIZE:
+        if test_index <= self.MAX_PACKET_SIZE:
             while self.rx_buff[test_index]:
                 delta = self.rx_buff[test_index]
                 self.rx_buff[test_index] = Delimiters.START_BYTE.value
@@ -515,7 +513,7 @@ class SerialTransfer:
                         self.state = State.FIND_PAYLOAD_LEN
 
                     elif self.state == State.FIND_PAYLOAD_LEN:
-                        if rec_char > 0 and rec_char <= MAX_PACKET_SIZE:
+                        if rec_char > 0 and rec_char <= self.MAX_PACKET_SIZE:
                             self.bytes_to_rec = rec_char
                             self.pay_index = 0
                             self.state = State.FIND_PAYLOAD
